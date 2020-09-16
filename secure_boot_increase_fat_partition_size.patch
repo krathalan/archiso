@@ -1,0 +1,4 @@
+547c547
+<     mkfs.fat -C -n ARCHISO_EFI "${isofs_dir}/EFI/archiso/efiboot.img" 65536
+---
+>     mkfs.fat -C -n ARCHISO_EFI "${isofs_dir}/EFI/archiso/efiboot.img" 1000000
