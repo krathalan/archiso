@@ -120,6 +120,10 @@ print_message "Signing Linux EFI bundle and systemd-boot EFI"
 sbctl sign "${EFI_DIR}/linux.efi"
 sbctl sign "${MOUNT_DIR}/EFI/BOOT/BOOTx64.EFI"
 
+print_message "Copying systemd-boot boot entry file"
+
+printf "title Arch Linux install medium (x86_64, UEFI, Secure Boot)\nefi /EFI/archiso/linux.efi\n" > "${MOUNT_DIR}/loader/entries/archiso-x86_64.conf"
+
 print_message "Unmounting drive and removing ${MOUNT_DIR}"
 
 umount "${MOUNT_DIR}" && rm -rf "${MOUNT_DIR}"
