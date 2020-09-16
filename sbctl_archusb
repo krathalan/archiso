@@ -1,0 +1,127 @@
+#!/usr/bin/env bash
+#
+# Description: Bundle and sign a Linux EFI stub; sign systemd-boot
+#              EFI. Makes an Arch live USB secure-boot-bootable with
+#              personal keys.
+#
+# Homepage: https://git.sr.ht/~krathalan/miscellaneous-scripts
+#
+# Copyright (C) 2020 krathalan
+#
+# This program is free software: you can redistribute it and/or modify
+# it under the terms of the GNU General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program.  If not, see <https://www.gnu.org/licenses/>.
+
+# -----------------------------------------
+# -------------- Guidelines ---------------
+# -----------------------------------------
+
+# This script follows the Google Shell Style Guide:
+# https://google.github.io/styleguide/shell.xml
+
+# This script uses shellcheck: https://www.shellcheck.net/
+
+# See https://vaneyckt.io/posts/safer_bash_scripts_with_set_euxo_pipefail/
+set -Eeuo pipefail
+
+# -----------------------------------------
+# ----------- Program variables -----------
+# -----------------------------------------
+
+# Colors
+readonly RED=$(tput bold && tput setaf 1)
+readonly NC=$(tput sgr0) # No color/turn off all tput attributes
+
+# Other
+readonly MOUNT_DIR="/sbctl_archusb"
+readonly EFI_DIR="${MOUNT_DIR}/EFI/archiso"
+readonly SCRIPT_NAME="${0##*/}"
+
+# -----------------------------------------
+# ------------- User variables ------------
+# -----------------------------------------
+
+# -----------------------------------------
+# --------------- Functions ---------------
+# -----------------------------------------
+
+#######################################
+# Prints passed error message before premature exit.
+# Prints everything to >&2 (STDERR).
+# Globals:
+#   RED, NC
+#   SCRIPT_NAME
+# Arguments:
+#   $1: error message to print
+# Returns:
+#   none
+#######################################
+exit_script_on_failure()
+{
+  printf "%sError%s: %s\n" "${RED}" "${NC}" "$1" >&2
+  exit 1
+}
+
+#######################################
+# Prints a nice message.
+# Globals:
+#   WHITE
+#   SCRIPT_NAME
+#   GREEN
+#   NC
+# Arguments:
+#   $1: message to print
+# Returns:
+#   none
+#######################################
+print_message()
+{
+  printf "%s\n" "$1"
+}
+
+# -----------------------------------------
+# ---------------- Script -----------------
+# -----------------------------------------
+
+if [[ "$(whoami)" != "root" ]]; then
+  exit_script_on_failure "This script must be run as root (or sudo)!"
+fi
+
+[[ $# -lt 1 ]] &&
+  exit_script_on_failure "Please specify your Arch USB block name (e.g. /dev/sde)."
+
+[[ ! -b "$1" ]] &&
+  exit_script_on_failure "Please check your input ($1) and make sure the device is connected."
+
+print_message "Making mount dir ${MOUNT_DIR}"
+
+mkdir -p "${MOUNT_DIR}"
+
+print_message "Mounting $1 on ${MOUNT_DIR}"
+
+# 2 because we want /dev/sdX2; thats where the systemd-boot stuff is
+mount "$1"2 "${MOUNT_DIR}"
+
+print_message "Making Linux EFI bundle"
+
+sbctl bundle -c ./sbctl_cmdline -i "${EFI_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/archiso.img" "${EFI_DIR}/linux.efi"
+
+print_message "Signing Linux EFI bundle and systemd-boot EFI"
+
+sbctl sign "${EFI_DIR}/linux.efi"
+sbctl sign "${MOUNT_DIR}/EFI/BOOT/BOOTx64.EFI"
+
+print_message "Unmounting drive and removing ${MOUNT_DIR}"
+
+umount "${MOUNT_DIR}" && rm -rf "${MOUNT_DIR}"
+
+printf "\n====================\nArch Live USB %s is ready for Secure Boot." "$1"
