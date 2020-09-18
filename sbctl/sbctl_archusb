@@ -111,9 +111,20 @@ print_message "Mounting $1 on ${MOUNT_DIR}"
 # 2 because we want /dev/sdX2; thats where the systemd-boot stuff is
 mount "$1"2 "${MOUNT_DIR}"
 
+if [[ -f "${EFI_DIR}/linux.efi" ]]; then
+  umount "${MOUNT_DIR}" && rm -rf "${MOUNT_DIR}"
+  exit_script_on_failure "Linux EFI already found for secure boot"
+fi
+
 print_message "Making Linux EFI bundle"
 
-sbctl bundle -c ./sbctl_cmdline -i "${EFI_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/archiso.img" "${EFI_DIR}/linux.efi"
+trap 'rm -f /tmp/linux.efi' SIGINT EXIT
+
+sbctl bundle -c ./sbctl_cmdline -i "${EFI_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/archiso.img" "/tmp/linux.efi"
+
+rm -f "${EFI_DIR}/archiso.img" "${EFI_DIR}/vmlinuz-linux" "${EFI_DIR}/intel-ucode.img" "${EFI_DIR}/amd-ucode.img"
+
+mv "/tmp/linux.efi" "${EFI_DIR}"
 
 print_message "Signing Linux EFI bundle and systemd-boot EFI"
 
