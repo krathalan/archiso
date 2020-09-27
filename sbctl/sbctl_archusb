@@ -44,11 +44,6 @@ readonly NC=$(tput sgr0) # No color/turn off all tput attributes
 # Other
 readonly MOUNT_DIR="/sbctl_archusb"
 readonly EFI_DIR="${MOUNT_DIR}/EFI/archiso"
-readonly SCRIPT_NAME="${0##*/}"
-
-# -----------------------------------------
-# ------------- User variables ------------
-# -----------------------------------------
 
 # -----------------------------------------
 # --------------- Functions ---------------
@@ -92,13 +87,13 @@ print_message()
 # ---------------- Script -----------------
 # -----------------------------------------
 
-if [[ "$(whoami)" != "root" ]]; then
+[[ "$(whoami)" != "root" ]] &&
   exit_script_on_failure "This script must be run as root (or sudo)!"
-fi
 
 [[ $# -lt 1 ]] &&
   exit_script_on_failure "Please specify your Arch USB block name (e.g. /dev/sde)."
 
+# Check to make sure specified block device is available
 [[ ! -b "$1" ]] &&
   exit_script_on_failure "Please check your input ($1) and make sure the device is connected."
 
@@ -108,7 +103,7 @@ mkdir -p "${MOUNT_DIR}"
 
 print_message "Mounting $1 on ${MOUNT_DIR}"
 
-# 2 because we want /dev/sdX2; thats where the systemd-boot stuff is
+# "$1"2 because we want /dev/sdX2; thats where the systemd-boot stuff is
 mount "$1"2 "${MOUNT_DIR}"
 
 if [[ -f "${EFI_DIR}/linux.efi" ]]; then
