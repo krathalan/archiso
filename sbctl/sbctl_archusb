@@ -113,6 +113,10 @@ fi
 
 print_message "Making Linux EFI bundle"
 
+# It's necessary to create the EFI bundle on the host because the EFI
+# partition on the live USB doesn't have enough room for the EFI bundle
+# AND the redundant kernel/initramfs/ucode
+
 trap 'rm -f /tmp/linux.efi' SIGINT EXIT
 
 sbctl bundle -c ./sbctl_cmdline -i "${EFI_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/archiso.img" "/tmp/linux.efi"
