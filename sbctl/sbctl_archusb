@@ -43,7 +43,8 @@ readonly NC=$(tput sgr0) # No color/turn off all tput attributes
 
 # Other
 readonly MOUNT_DIR="/sbctl_archusb"
-readonly EFI_DIR="${MOUNT_DIR}/EFI/archiso"
+readonly UCODE_DIR="${MOUNT_DIR}/arch/boot"
+readonly EFI_DIR="${MOUNT_DIR}/arch/boot/x86_64"
 
 # -----------------------------------------
 # --------------- Functions ---------------
@@ -119,9 +120,9 @@ print_message "Making Linux EFI bundle"
 
 trap 'rm -f /tmp/linux.efi' SIGINT EXIT
 
-sbctl bundle -c ./sbctl_cmdline -i "${EFI_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/archiso.img" "/tmp/linux.efi"
+sbctl bundle -c ./sbctl_cmdline -i "${UCODE_DIR}/intel-ucode.img" -k "${EFI_DIR}/vmlinuz-linux" -f "${EFI_DIR}/initramfs-linux.img" "/tmp/linux.efi"
 
-rm -f "${EFI_DIR}/archiso.img" "${EFI_DIR}/vmlinuz-linux" "${EFI_DIR}/intel-ucode.img" "${EFI_DIR}/amd-ucode.img"
+rm -f "${EFI_DIR}/initramfs-linux.img" "${EFI_DIR}/vmlinuz-linux" "${UCODE_DIR}/intel-ucode.img" "${UCODE_DIR}/amd-ucode.img"
 
 mv "/tmp/linux.efi" "${EFI_DIR}"
 
@@ -132,7 +133,7 @@ sbctl sign "${MOUNT_DIR}/EFI/BOOT/BOOTx64.EFI"
 
 print_message "Copying systemd-boot boot entry file"
 
-printf "title Arch Linux install medium (x86_64, UEFI, Secure Boot)\nefi /EFI/archiso/linux.efi\n" > "${MOUNT_DIR}/loader/entries/archiso-x86_64.conf"
+printf "title Arch Linux install medium (x86_64, UEFI, Secure Boot)\nefi /arch/boot/x86_64/linux.efi\n" > "${MOUNT_DIR}/loader/entries/archiso-x86_64-linux.conf"
 
 print_message "Unmounting drive and removing ${MOUNT_DIR}"
 
